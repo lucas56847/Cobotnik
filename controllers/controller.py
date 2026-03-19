@@ -32,8 +32,8 @@ class Controller:
         self.model.calibrate_servos()
         self.view.resultbox.set("Calibrated.")
 
-    def reset_limits(self):
-        self.model.reset_joint_minimum(1,-90)
+    def reset_limits(self): #changed join min to -130
+        self.model.reset_joint_minimum(1,-130)
         self.model.reset_joint_maximum(1, 160)
 
     def update_status(self, status):
