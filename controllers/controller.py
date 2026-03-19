@@ -29,14 +29,12 @@ class Controller:
     def calibration_click(self):
         tk.messagebox.showinfo(title=None, message="Move all joints to 'zero' position and press Okay")
 
-
         self.model.calibrate_servos()
         self.view.resultbox.set("Calibrated.")
 
-    def patrol_click(self):
+    def reset_limits(self):
         self.model.reset_joint_minimum(1,-90)
         self.model.reset_joint_maximum(1, 160)
-        pass
 
     def update_status(self, status):
         self.view.resultbox.set(self.view.resultbox.get() + status)
@@ -46,7 +44,7 @@ class Controller:
         self.model.set_color(color)
         self.update_status("Success")
 
-    def _release_servos_threaded(self):
+    def _release_servos_thread(self):
         self.update_status("\nReleasing Servos.....")
         if self.model.release_servos():
             self.update_status("Failure")
@@ -60,7 +58,7 @@ class Controller:
             return
         try:
             self.movement_lock = True
-            thread = threading.Thread(target=self._release_servos_threaded, args=())
+            thread = threading.Thread(target=self._release_servos_thread, args=())
             thread.start()
         except:
             self.update_status("Failure")
@@ -88,6 +86,7 @@ class Controller:
         finally:
             self.movement_lock = False
 
+
     def reset_movement(self):
         if self.movement_lock:
             return
@@ -99,6 +98,14 @@ class Controller:
         except Exception as e:
             self.update_status("Failure")
             self.update_status(str(e))
+
+    def reset_movement_threaded(self):
+        try:
+            self.model.reset_all_servos()
+            self.view.after(0, lambda: self.update_status("Success"))
+        finally:
+            self.movement_lock = False
+
 
     def reset_movement_sequential(self):
         if self.movement_lock:
@@ -120,13 +127,7 @@ class Controller:
                     self.view.after(0, lambda: self.update_status("Success"))
         finally:
             self.movement_lock = False
-
-    def reset_movement_threaded(self):
-        try:
-            self.model.reset_all_servos()
-            self.view.after(0, lambda: self.update_status("Success"))
-        finally:
-            self.movement_lock = False
+            self.model.cleanup()
 
     def send_angle_sequential(self, angleList):
         if self.movement_lock:
@@ -135,19 +136,6 @@ class Controller:
         self.movement_lock = True
         self.update_status("\nSending angles to joints sequentially...")
         thread = threading.Thread(target=self.send_angle_thread_seq, args=(angleList,))
-        try:
-            thread.start()
-        except Exception as e:
-            self.update_status("Failure\n")
-            self.update_status(str(e))
-
-    def send_angle_concurrent(self, angleList):
-        if self.movement_lock:
-            return
-
-        self.movement_lock = True
-        self.update_status("\nSending angles to joints concurrently...")
-        thread = threading.Thread(target=self.send_angle_thread_concurr, args=(angleList,))
         try:
             thread.start()
         except Exception as e:
@@ -163,6 +151,20 @@ class Controller:
         finally:
             self.movement_lock = False
             self.model.cleanup()
+
+
+    def send_angle_concurrent(self, angleList):
+        if self.movement_lock:
+            return
+
+        self.movement_lock = True
+        self.update_status("\nSending angles to joints concurrently...")
+        thread = threading.Thread(target=self.send_angle_thread_concurr, args=(angleList,))
+        try:
+            thread.start()
+        except Exception as e:
+            self.update_status("Failure\n")
+            self.update_status(str(e))
 
     def send_angle_thread_concurr(self,  angleList):
         try:
@@ -198,12 +200,10 @@ class Controller:
         angle_str = args[0].get()
         angle_txt,angle_arr = UniversalHelpers.get_ints_from_str(angle_str)
         status = f"\nQueued up {angle_txt} to send to robot..."
-        self.retarded_status_update_threaded(status)
+        self.update_status(status)
         if args[1] == True: #if concurrent
-            #thread = threading.Thread(target=self.send_angleList_thread(angle_arr), args=(angle_arr,))
             self.send_angle_concurrent(angle_arr)
         else:
-            #thread = threading.Thread(target=self.send_angle_sequential, args=(angle_arr,))
             self.send_angle_sequential(angle_arr)
 
 
@@ -275,9 +275,6 @@ class Controller:
     def set_callbacks(self,button,cmd):
         button.config(command=cmd)
 
-    def retarded_status_update_threaded(self,status):
-        self.update_status(status)
-
     def move_joint_pos20(self, joint_box):
         if self.movement_lock:
             return
@@ -290,8 +287,6 @@ class Controller:
                 self.update_status("\nMoving joint by 20 deg...")
                 self.movement_lock = True
                 self.model.send_single_movement(int(joint), current_angles[int(joint)-1]+20)
-                #thread = threading.Thread(target=self._set_color_background, args=(color, entry_box))
-                #thread.start()
                 joint_box.config(bg="green")
             else:
                 joint_box.config(bg="red")
@@ -300,6 +295,7 @@ class Controller:
             self.update_status("Failure")
         finally:
             self.movement_lock = False
+            self.model.cleanup()
 
     def move_joint_neg20(self, joint_box):
         if self.movement_lock:
@@ -315,8 +311,6 @@ class Controller:
                 self.update_status("\nMoving joint by 20 deg...")
                 self.movement_lock = True
                 self.model.send_single_movement(int(joint), current_angles[int(joint)-1]-20)
-                #thread = threading.Thread(target=self._set_color_background, args=(color, entry_box))
-                #thread.start()
                 joint_box.config(bg="green")
             else:
                 joint_box.config(bg="red")
@@ -326,13 +320,13 @@ class Controller:
             print(str(e))
         finally:
             self.movement_lock = False
+            self.model.cleanup()
 
-    def complex_move(self):
+    def complex_move(self): #this could be A LOT better. ... in every way possible. ran out of time!!!
         filetypes = (
             ('text files', '*.txt'),
         )
 
-        # Show the "Open" dialog and get the file path
         filepath = fd.askopenfilename(
             title='Choose a file',
             initialdir=os.getcwd(),  # Sets the initial directory to the current working directory
@@ -351,6 +345,7 @@ class Controller:
                     #delay *= 5
                     self.movement_lock = False
                    # self.view.after(delay, self.send_angle_concurrent, angle_arr)
+
     def send_angle_concurrent_with_delay(self, angleList,delay):
         if self.movement_lock:
             return

@@ -131,7 +131,7 @@ class MainView(tk.Frame): #changed from ttk.Frame to tk.Frame
         complex_move_button.pack(pady="10", padx="10", anchor='w')
 
         self.btn_dict_list.append(self.helpers.create_button_def(cal_button,self.controller.calibration_click, []))
-        self.btn_dict_list.append(self.helpers.create_button_def(patrol_loop_button, self.controller.patrol_click, []))
+        self.btn_dict_list.append(self.helpers.create_button_def(patrol_loop_button, self.controller.reset_limits, []))
         self.btn_dict_list.append(self.helpers.create_button_def(release_servos_button, self.controller.release_servos_click, []))
         self.btn_dict_list.append(self.helpers.create_button_def(change_color_button, self.controller.set_led_color, entry_box))
         self.btn_dict_list.append(
@@ -171,10 +171,11 @@ class MainView(tk.Frame): #changed from ttk.Frame to tk.Frame
         status_label.pack()
         self.status_text = tk.Label(frame, fg="#FFFFFF", textvariable=self.resultbox, bg=self.result_bg_color)
 
-       # status_box.config(state='disabled')
         self.status_text.pack()
 
-    def set_callbacks(self,cal_button, patrol_button):
+    def set_callbacks(self,cal_button, patrol_button): #toyed with the idea of doing this here ....
+        #but you have to include the button reference SOMEWHERE so never wound up doing it this way.
+        #leaving here in case i find a better way
         pass
 
 

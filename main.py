@@ -1,6 +1,3 @@
-
-
-from models import model
 from models.model import RoboModel
 from views import MainView
 from controllers import *
@@ -17,11 +14,8 @@ class Application:
         self.view.create_main_view(self.root)
         self.model = RoboModel(self.controller)
 
-
-
     def run(self):
         self.root.mainloop()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
