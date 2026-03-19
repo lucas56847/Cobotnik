@@ -2,7 +2,7 @@ import socket, pickle, cv2, struct, imutils, subprocess, re, time
 import threading, queue
 def main():
     server = Video_Server()
-    a
+
 class Video_Server:
     def __init__(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
