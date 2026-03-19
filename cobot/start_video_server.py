@@ -1,7 +1,6 @@
 import tkinter as tk
 import time
-from gui.main_window import MainWindow
-from server import *
+from video_server import *
 
 def main():
 
